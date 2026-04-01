@@ -1,4 +1,4 @@
-# 🌲 Wood Supply Intelligence
+# Wood Supply Intelligence
 
 **Business Controlling & AI Portfolio Project — Stora Enso Wood Supply Trainee Application**
 
