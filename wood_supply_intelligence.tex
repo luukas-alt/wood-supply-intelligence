@@ -1,0 +1,427 @@
+\documentclass[11pt,a4paper]{article}
+
+% ─── Packages ────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc,fit}
+
+% ─── Colors ──────────────────────────────────────────────────────────────
+\definecolor{storagreen}{HTML}{3D5A3D}
+\definecolor{forestdark}{HTML}{1A2E1A}
+\definecolor{pinegr}{HTML}{4A7C59}
+\definecolor{amber}{HTML}{D4A44C}
+\definecolor{codebg}{HTML}{F5F5F0}
+\definecolor{codeframe}{HTML}{D4E4D4}
+
+% ─── Styling ─────────────────────────────────────────────────────────────
+\hypersetup{colorlinks=true, linkcolor=storagreen, urlcolor=storagreen, citecolor=storagreen}
+\titleformat{\section}{\large\bfseries\color{forestdark}}{}{0em}{}[\vspace{-0.3em}\textcolor{pinegr}{\rule{\textwidth}{0.8pt}}]
+\titleformat{\subsection}{\normalsize\bfseries\color{storagreen}}{}{0em}{}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{gray}Wood Supply Intelligence}
+\fancyhead[R]{\small\color{gray}Luukas --- Aalto University}
+\fancyfoot[C]{\small\color{gray}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ─── Document ────────────────────────────────────────────────────────────
+\begin{document}
+
+% ─── Title page ──────────────────────────────────────────────────────────
+\begin{titlepage}
+\centering
+\vspace*{3cm}
+
+{\fontsize{36}{40}\selectfont\bfseries\color{forestdark} Wood Supply\\[0.2em] Intelligence}
+
+\vspace{1cm}
+
+{\Large\color{storagreen} An AI-Driven Decision Support Platform\\for Wood Supply Business Controlling}
+
+\vspace{2cm}
+
+{\large
+Luukas\\[0.3em]
+\textit{Systems Sciences and Applied Mathematics}\\
+\textit{Aalto University --- School of Science}
+}
+
+\vspace{1.5cm}
+
+{\normalsize
+Portfolio Project\\
+Business Controlling \& AI Summer Trainee Position\\
+Stora Enso --- Wood \& Energy
+}
+
+\vspace{2cm}
+
+\textcolor{pinegr}{\rule{8cm}{1pt}}
+
+\vspace{0.5cm}
+{\small April 2026}
+
+\end{titlepage}
+
+% ─── Table of Contents ───────────────────────────────────────────────────
+\tableofcontents
+\newpage
+
+% ═════════════════════════════════════════════════════════════════════════
+\section{Introduction}
+% ═════════════════════════════════════════════════════════════════════════
+
+Wood supply operations generate large volumes of operational and financial data --- timber price fluctuations across regions, procurement transactions from dozens of suppliers, depot inventory snapshots, and transport logistics connecting terminals to mills. In practice, much of this data sits in disconnected systems (SAP, Power~BI exports, Excel spreadsheets), and the process of turning it into actionable business insight remains largely manual.
+
+This project presents \textbf{Wood Supply Intelligence}, a prototype decision support platform that demonstrates how three technologies --- \textit{data engineering pipelines}, \textit{mathematical optimization}, and \textit{generative AI} --- can be integrated into a single system to support Business Controlling in a wood supply organization.
+
+The platform is designed around the real operational structure of Finnish wood supply: six procurement regions, six wood assortments (three log types and three pulpwood types), a network of depots and mills, and a supplier base with heterogeneous performance characteristics. While the data is synthetic, its structure mirrors the publicly available Finnish timber market data published by Luke (Natural Resources Institute Finland) and follows patterns observed in Nordic wood supply chains.
+
+The system has three main components:
+\begin{enumerate}[leftmargin=2em]
+    \item A \textbf{data pipeline} that generates, cleans, and aggregates supply chain data into analysis-ready datasets and KPI summaries.
+    \item A \textbf{transport optimization model} that uses linear programming to allocate wood deliveries across the depot--mill network at minimum cost.
+    \item An \textbf{interactive dashboard} with an integrated \textbf{AI Copilot} that allows business controllers to explore data visually and query it using natural language.
+\end{enumerate}
+
+
+% ═════════════════════════════════════════════════════════════════════════
+\section{System Architecture}
+% ═════════════════════════════════════════════════════════════════════════
+
+The platform follows a layered architecture in which raw data flows through processing and optimization stages before reaching the presentation layer. Figure~\ref{fig:architecture} illustrates the overall data flow.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.8cm,
+    box/.style={draw=storagreen, fill=codebg, rounded corners=4pt, minimum width=3.2cm, minimum height=1cm, align=center, font=\small},
+    bigbox/.style={draw=storagreen, fill=white, rounded corners=6pt, minimum width=3.5cm, minimum height=1.2cm, align=center, font=\small\bfseries},
+    arr/.style={-{Stealth[length=3mm]}, thick, color=storagreen},
+    label/.style={font=\scriptsize\itshape, color=gray},
+]
+    % Data sources
+    \node[box] (prices) {Timber Prices\\{\scriptsize 1,296 records}};
+    \node[box, below=0.6cm of prices] (procure) {Procurement\\{\scriptsize 4,289 orders}};
+    \node[box, below=0.6cm of procure] (inv) {Inventory\\{\scriptsize 5,652 snapshots}};
+    \node[box, below=0.6cm of inv] (transport) {Transport Costs\\{\scriptsize 36 routes}};
+    \node[box, below=0.6cm of transport] (suppliers) {Suppliers\\{\scriptsize 50 profiles}};
+
+    % Pipeline
+    \node[bigbox, right=2.5cm of procure] (pipeline) {Data Pipeline\\{\scriptsize pandas / Python}};
+    \node[bigbox, right=2.5cm of transport] (optim) {LP Optimizer\\{\scriptsize PuLP / CBC}};
+
+    % Output
+    \node[bigbox, right=2.5cm of pipeline] (dash) {Dashboard\\{\scriptsize React / Recharts}};
+    \node[bigbox, right=2.5cm of optim] (copilot) {AI Copilot\\{\scriptsize Claude API}};
+
+    % Arrows: sources → pipeline
+    \draw[arr] (prices.east) -- ++(0.7,0) |- (pipeline.west);
+    \draw[arr] (procure.east) -- (pipeline.west);
+    \draw[arr] (inv.east) -- ++(0.7,0) |- (pipeline.south west);
+
+    % Arrows: sources → optim
+    \draw[arr] (inv.east) -- ++(0.5,0) |- (optim.west);
+    \draw[arr] (transport.east) -- (optim.west);
+
+    % Arrows: processing → presentation
+    \draw[arr] (pipeline.east) -- (dash.west);
+    \draw[arr] (optim.east) -- (copilot.west);
+    \draw[arr] (pipeline.south east) -- ++(0.5,0) |- (copilot.north west);
+    \draw[arr] (optim.north east) -- ++(0.5,0) |- (dash.south west);
+
+    % Labels
+    \node[label, above=0.1cm of prices.north west, anchor=south west] {Data Sources};
+    \node[label, above=0.1cm of pipeline.north west, anchor=south west] {Processing};
+    \node[label, above=0.1cm of dash.north west, anchor=south west] {Presentation};
+
+    % Grouping boxes
+    \begin{scope}[on background layer]
+        \node[draw=gray!40, dashed, rounded corners=8pt, fit=(prices)(suppliers), inner sep=8pt] {};
+        \node[draw=gray!40, dashed, rounded corners=8pt, fit=(pipeline)(optim), inner sep=8pt] {};
+        \node[draw=gray!40, dashed, rounded corners=8pt, fit=(dash)(copilot), inner sep=8pt] {};
+    \end{scope}
+\end{tikzpicture}
+\caption{System architecture. Data flows from synthetic sources through the processing layer (aggregation and optimization) into the interactive dashboard and AI Copilot.}
+\label{fig:architecture}
+\end{figure}
+
+
+% ═════════════════════════════════════════════════════════════════════════
+\section{Data Pipeline}
+% ═════════════════════════════════════════════════════════════════════════
+
+The data pipeline (\texttt{data\_pipeline.py}) serves two purposes: it generates realistic synthetic data for development and demonstration, and it computes the derived KPIs and aggregations that feed the dashboard.
+
+\subsection{Data Generation Model}
+
+The synthetic data is structured around the Finnish wood supply chain:
+
+\begin{table}[H]
+\centering
+\caption{Generated datasets and their characteristics.}
+\label{tab:datasets}
+\begin{tabular}{@{}llrl@{}}
+\toprule
+\textbf{Dataset} & \textbf{Granularity} & \textbf{Records} & \textbf{Time span} \\
+\midrule
+Timber prices     & Monthly, by region \& wood type  & 1,296  & 2023--2025 \\
+Procurement       & Per purchase order               & 4,289  & 2023--2025 \\
+Inventory         & Weekly, by depot \& wood type    & 5,652  & 2023--2025 \\
+Transport costs   & Per depot--mill route            & 36     & Static \\
+Supplier scores   & Per supplier                     & 50     & Static \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The timber price model incorporates three components: a seasonal factor $s(t) = 1 + 0.05 \sin\!\bigl(\frac{2\pi(t-3)}{12}\bigr)$ reflecting higher summer harvesting prices, a linear trend $\tau(t) = 1 + 0.002t$, and a stochastic noise term $\varepsilon \sim \mathcal{N}(0, \sigma_w^2)$ where $\sigma_w$ is the wood-type-specific volatility. The composite price for wood type~$w$ at time~$t$ in region~$r$ is:
+\begin{equation}
+    p_{w,t,r} = p_w^{\text{base}} \cdot s(t) \cdot \tau(t) \cdot (1 + \varepsilon) \cdot f_r
+    \label{eq:price}
+\end{equation}
+where $f_r \sim \text{Uniform}(0.95, 1.05)$ is a regional adjustment factor.
+
+Procurement volumes follow a log-normal distribution $V \sim \text{LogNormal}(\mu=5.5,\, \sigma=0.8)$ reflecting the heavy-tailed nature of real timber orders, where most orders are moderate but some are very large.
+
+Delivery performance is modeled with a discrete delay distribution where the probability of being on time is approximately 75\%, and delay magnitudes follow a skewed distribution with a long right tail --- matching the empirical observation that late deliveries are more common and more variable than early ones.
+
+\subsection{KPI Computation}
+
+The pipeline computes the following KPIs at quarterly and regional granularity:
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Cost per cubic meter} ($\text{€/m}^3$) --- total procurement cost divided by total volume, the primary unit cost metric.
+    \item \textbf{On-time delivery rate} --- percentage of orders delivered within planned lead time.
+    \item \textbf{Inventory utilization} --- current stock as a percentage of depot capacity, with thresholds for critical ($<20\%$ of safety stock), low ($<$safety stock), optimal, and overstocked states.
+    \item \textbf{Supplier composite score} --- weighted combination of reliability (Beta$(8,2)$ distribution), quality, price competitiveness, and on-time performance.
+\end{itemize}
+
+In a production deployment, this pipeline would connect to SAP extracts, Power~BI data exports, or a data warehouse rather than generating synthetic data. The aggregation and KPI logic would remain identical.
+
+
+% ═════════════════════════════════════════════════════════════════════════
+\section{Transport Cost Optimization}
+% ═════════════════════════════════════════════════════════════════════════
+
+The core analytical contribution of the project is a linear programming model that optimizes the allocation of wood volumes across the depot--mill transport network. This addresses one of the most concrete cost levers in wood supply logistics: given available stock at each depot and demand at each mill, which routes should carry which volumes to minimize total transport cost?
+
+\subsection{Mathematical Formulation}
+
+Let $D$ denote the set of depots, $M$ the set of mills, and $W$ the set of wood types. The decision variables are:
+\[
+x_{d,m,w} \geq 0 \quad \forall\, d \in D,\; m \in M,\; w \in W
+\]
+representing the volume (m$^3$/week) of wood type $w$ transported from depot $d$ to mill $m$.
+
+\textbf{Objective:} Minimize total weekly transport cost:
+\begin{equation}
+\min \sum_{d \in D} \sum_{m \in M} \sum_{w \in W} c_{d,m,w} \cdot x_{d,m,w}
+\label{eq:objective}
+\end{equation}
+
+\textbf{Subject to:}
+
+\begin{align}
+\sum_{m \in M} x_{d,m,w} &\leq \text{supply}_{d,w} && \forall\, d \in D,\; w \in W \label{eq:supply}\\[4pt]
+\sum_{d \in D} x_{d,m,w} &\geq \text{demand}_{m,w} && \forall\, m \in M,\; w \in W \label{eq:demand}\\[4pt]
+\sum_{w \in W} x_{d,m,w} &\leq \text{cap}_{d,m} && \forall\, d \in D,\; m \in M \label{eq:capacity}
+\end{align}
+
+Constraint~\eqref{eq:supply} ensures that shipments from each depot do not exceed available inventory. Constraint~\eqref{eq:demand} ensures that each mill receives at least its required volume. Constraint~\eqref{eq:capacity} limits total throughput on each route to the transport capacity.
+
+\subsection{Implementation and Results}
+
+The model is implemented using PuLP (Python LP library) and solved with the CBC solver. The problem instance has:
+
+\begin{table}[H]
+\centering
+\caption{Optimization model dimensions and results.}
+\label{tab:optim}
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+Decision variables      & 144 \\
+Constraints             & 84 \\
+Solver status           & Optimal \\
+Optimized weekly cost   & \texteuro 34,596 \\
+Naive allocation cost   & \texteuro 42,553 \\
+\textbf{Cost savings}   & \textbf{18.7\%} \\
+Active routes           & 8 of 36 possible \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The naive baseline distributes demand equally across all available depots without considering transport costs or route efficiencies. The LP solution concentrates flows on cost-efficient routes --- for example, the Kotka Terminal$\to$Imatra Mill route handles 1,197~m$^3$/week at \texteuro 6.31/m$^3$, while the model avoids expensive long-haul routes entirely.
+
+\subsection{Business Application}
+
+In practice, this model could be extended to:
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Weekly planning:} Re-solve with updated inventory and demand data from SAP to produce recommended transport plans.
+    \item \textbf{What-if analysis:} Test scenarios such as a depot closure, demand spike, or fuel price increase by modifying constraints and re-solving.
+    \item \textbf{Multi-objective optimization:} Add CO$_2$ emissions as a second objective to balance cost against sustainability targets.
+    \item \textbf{Stochastic extensions:} Incorporate demand uncertainty using robust optimization or scenario-based approaches.
+\end{itemize}
+
+Annualized, the 18.7\% cost reduction on transport corresponds to approximately \textbf{\texteuro 414,000 per year} in potential savings for this network configuration --- a concrete, quantifiable impact that Business Controlling can track and report.
+
+
+% ═════════════════════════════════════════════════════════════════════════
+\section{Interactive Dashboard}
+% ═════════════════════════════════════════════════════════════════════════
+
+The dashboard is built as a React application using Recharts for data visualization. It provides five integrated views that together cover the core information needs of a Business Controller in wood supply operations.
+
+\subsection{Overview}
+
+The overview tab presents four headline KPIs (total procurement cost, volume, on-time rate, and supplier count) alongside a dual-axis time series showing quarterly cost-per-m$^3$ and volume trends. A regional cost comparison bar chart identifies which procurement regions are most and least cost-efficient.
+
+This view answers the question: \textit{Where are we now, and how have we been trending?}
+
+\subsection{Procurement Analytics}
+
+The procurement tab provides a timber price tracker with filtering by wood category (logs vs.\ pulpwood), showing monthly price evolution across all six assortments from 2023 to 2025. A pie chart and detail table break down volume and cost by wood type.
+
+This view supports \textit{price monitoring and procurement strategy} --- for example, identifying whether spruce log prices are trending above budget, or whether the mix of wood types has shifted.
+
+\subsection{Inventory and Supplier Management}
+
+This tab shows depot inventory health with visual utilization indicators and alert flags for critical or low stock situations. The supplier section ranks the top performers by composite reliability score and presents a radar chart comparing the top four suppliers across reliability, quality, price competitiveness, and on-time delivery.
+
+These views support \textit{operational risk management}: which depots need restocking, and which suppliers should be prioritized or reviewed?
+
+\subsection{Optimization Results}
+
+The optimization tab displays the LP model results: route volumes, cost efficiency per route, capacity utilization, and the mathematical formulation itself. The savings comparison shows the concrete cost difference between optimized and naive allocation.
+
+This view translates the mathematical model into a format that \textit{operational managers and controllers} can understand and act on.
+
+\subsection{AI Copilot}
+
+The most forward-looking component is the AI Copilot --- a chat interface powered by the Claude API that enables natural-language querying of the entire dataset. A business controller can ask questions like:
+
+\begin{itemize}[leftmargin=2em]
+    \item ``Which region had the highest cost increase last quarter?''
+    \item ``Compare supplier reliability in Itä-Suomi versus Länsi-Suomi.''
+    \item ``What would happen if Oulu Terminal stock dropped to zero?''
+\end{itemize}
+
+The Copilot receives a structured data summary as context and generates responses with specific numbers and actionable recommendations. It bridges the gap between data availability and data accessibility --- controllers do not need to build new reports or write queries; they simply ask.
+
+
+% ═════════════════════════════════════════════════════════════════════════
+\section{Generative AI Use Cases for Business Controlling}
+% ═════════════════════════════════════════════════════════════════════════
+
+Beyond the Copilot prototype, the project identifies six concrete use cases where generative AI could enhance Business Controlling workflows in wood supply:
+
+\subsection{Anomaly Detection}
+
+An LLM monitors incoming data streams (procurement costs, delivery times, inventory changes) and generates plain-language alerts when values deviate significantly from historical patterns. Instead of a controller manually scanning dashboards, the system proactively flags issues such as ``Pine log procurement costs in Keski-Suomi increased 12\% versus the trailing 6-month average --- driven by 3 orders from Supplier\_034 at above-market prices.''
+
+\subsection{Automated Report Summarization}
+
+Weekly Power~BI exports or SAP data extracts are fed to the LLM, which produces executive summaries highlighting the most important changes. This reduces the manual effort of preparing recurring reports and ensures that key stakeholders receive consistent, data-grounded narratives.
+
+\subsection{Scenario-Based Q\&A}
+
+Controllers ask what-if questions in natural language and receive quantified impact estimates. The system combines the optimization model with the LLM interface: ``If pine demand increases by 20\%, which routes become bottlenecks?'' triggers a re-solve of the LP model, and the LLM translates the technical output into a business-readable response.
+
+\subsection{Data Quality Assistance}
+
+SAP data often contains quality issues --- missing fields, duplicate entries, inconsistent units, or misclassified wood types. An LLM-based assistant reviews incoming data batches, flags potential issues, and suggests corrections, reducing the time controllers spend on data cleaning before analysis.
+
+\subsection{Procurement Decision Support}
+
+By combining timber price trends, inventory levels, and demand forecasts, the AI suggests optimal order quantities and timing. For instance: ``Spruce pulpwood prices are currently 8\% below the 12-month average and inventory at Kotka Terminal is approaching safety stock --- recommend placing 500~m$^3$ order within the next 2 weeks.''
+
+\subsection{Supplier Risk Monitoring}
+
+Continuous assessment of supplier performance with early warning signals. The system tracks reliability, on-time delivery, and price trends per supplier and generates monthly risk reports: ``Supplier\_031 reliability has dropped from 78\% to 62\% over the past 6 months. Recommend performance review meeting and contingency sourcing plan.''
+
+
+% ═════════════════════════════════════════════════════════════════════════
+\section{Technical Implementation}
+% ═════════════════════════════════════════════════════════════════════════
+
+\subsection{Technology Stack}
+
+\begin{table}[H]
+\centering
+\caption{Technology stack and component responsibilities.}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Component} & \textbf{Technology} & \textbf{Role} \\
+\midrule
+Data pipeline       & Python, pandas, NumPy  & Data generation, cleaning, aggregation \\
+Optimization        & PuLP, CBC solver       & LP formulation and solving \\
+Dashboard           & React, Recharts        & Interactive visualization \\
+AI Copilot          & Claude API (Sonnet)    & Natural-language data querying \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Adapting to Production}
+
+The current prototype uses synthetic data, but the architecture is designed for straightforward adaptation to production systems:
+
+\begin{enumerate}[leftmargin=2em]
+    \item \textbf{Data sources:} Replace the data generation functions with connectors to SAP extracts (e.g., via SAP BW/HANA ODBC), Power~BI REST API, or a corporate data warehouse.
+    \item \textbf{Scheduling:} Wrap the pipeline and optimization model in an Airflow DAG or Azure Data Factory pipeline for automated daily/weekly execution.
+    \item \textbf{Dashboard hosting:} Deploy the React dashboard on an internal web server or integrate the visualizations as embedded Power~BI custom visuals.
+    \item \textbf{AI Copilot:} Connect to the corporate LLM infrastructure (e.g., Microsoft Copilot, Azure OpenAI, or Anthropic Claude) with appropriate data governance and access controls.
+\end{enumerate}
+
+
+% ═════════════════════════════════════════════════════════════════════════
+\section{Potential Impact}
+% ═════════════════════════════════════════════════════════════════════════
+
+The combined platform addresses three levels of value creation:
+
+\textbf{Operational efficiency.} The transport optimization model alone identified 18.7\% cost savings (\texttildelow\texteuro 414K/year annualized). Scaling similar optimization to other areas --- procurement timing, inventory rebalancing, supplier allocation --- could multiply this impact significantly.
+
+\textbf{Decision speed.} The dashboard reduces the time from ``data available'' to ``insight actionable.'' Instead of manually assembling reports from SAP and Excel, controllers access pre-computed KPIs and interactive visualizations. The AI Copilot further accelerates ad-hoc analysis by eliminating the need to build new queries.
+
+\textbf{AI readiness.} The six documented use cases provide a roadmap for incremental AI adoption in Business Controlling. Each use case is scoped, concrete, and can be piloted independently --- matching the experimental, iterative approach that characterizes successful AI transformation.
+
+
+% ═════════════════════════════════════════════════════════════════════════
+\section{Conclusion}
+% ═════════════════════════════════════════════════════════════════════════
+
+Wood Supply Intelligence demonstrates how data engineering, mathematical optimization, and generative AI can be integrated into a decision support system for wood supply Business Controlling. The platform takes operational data, transforms it into structured KPIs, optimizes transport allocation to reduce costs, and makes all of this accessible through an interactive dashboard and a natural-language AI interface.
+
+The project is designed not as a finished product but as a working prototype that shows what is possible --- and, more importantly, what is practical. Every component uses proven technologies, addresses real operational needs, and can be adapted incrementally to a production environment.
+
+The source code and interactive dashboard are available at: \url{https://github.com/luukas-alt/wood-supply-intelligence}
+
+\end{document}
